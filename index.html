@@ -157,13 +157,6 @@
     <h1>Control de Ingreso y Salida</h1>
   </div>
 
-  <div class="config-toggle" id="toggleConfig">Configurar URL del backend</div>
-  <div class="card hidden" id="configCard">
-    <label for="apiUrl">URL de la aplicación web (Apps Script)</label>
-    <input id="apiUrl" placeholder="https://script.google.com/macros/s/XXXX/exec">
-    <button class="punch" style="margin-top:10px; width:100%;" onclick="guardarApiUrl()">Guardar</button>
-  </div>
-
   <div class="clock-panel">
     <div class="clock-digits" id="reloj">--:--:--</div>
     <div class="clock-date" id="fechaHoy">-</div>
@@ -267,6 +260,8 @@
       <div class="tabs">
         <button class="tab-btn active" id="tabReporte" onclick="cambiarTab('reporte')">Reportes</button>
         <button class="tab-btn" id="tabEmpleados" onclick="cambiarTab('empleados')">Trabajadores</button>
+        <button class="tab-btn" id="tabManual" onclick="cambiarTab('manual')">Registro manual</button>
+        <button class="tab-btn" id="tabConfig" onclick="cambiarTab('config')">Configuración</button>
       </div>
 
       <!-- Reportes -->
@@ -275,7 +270,7 @@
           <select id="periodoSelect">
             <option value="diario">Diario</option>
             <option value="semanal">Semanal</option>
-            <option value="mensual">Mensual</option>
+            <option value="mensual">Mensual (ciclo 26-25)</option>
           </select>
           <input id="fechaRefInput" type="date">
         </div>
@@ -286,14 +281,65 @@
 
         <h2 style="margin-top:20px;">Detalle de marcajes</h2>
         <table>
-          <thead><tr><th>Fecha</th><th>Nombre</th><th>Ent.</th><th>Sal.</th><th>Norm.</th><th>Extra</th><th>Extraord.</th></tr></thead>
-          <tbody id="detalleReporte"><tr><td colspan="7" style="color:var(--text-dim);">Sin datos</td></tr></tbody>
+          <thead><tr><th>Fecha</th><th>Nombre</th><th>Ent.</th><th>Sal.</th><th>Norm.</th><th>Extra</th><th>Extraord.</th><th>Obs.</th></tr></thead>
+          <tbody id="detalleReporte"><tr><td colspan="8" style="color:var(--text-dim);">Sin datos</td></tr></tbody>
         </table>
       </div>
 
       <!-- Trabajadores -->
       <div id="panelEmpleados" class="hidden">
         <div id="listaEmpleadosAdmin"></div>
+      </div>
+
+      <!-- Registro manual / justificación -->
+      <div id="panelManual" class="hidden">
+        <label for="manualEmpleado">Trabajador</label>
+        <select id="manualEmpleado" style="margin-bottom:12px;"></select>
+
+        <label for="manualFecha">Fecha</label>
+        <input id="manualFecha" type="date" style="margin-bottom:12px;">
+
+        <div class="row-2" style="margin-bottom:12px;">
+          <div>
+            <label for="manualEntrada">Hora entrada (opcional)</label>
+            <input id="manualEntrada" type="time">
+          </div>
+          <div>
+            <label for="manualSalida">Hora salida (opcional)</label>
+            <input id="manualSalida" type="time">
+          </div>
+        </div>
+
+        <label for="manualObs">Observación / Justificación</label>
+        <input id="manualObs" placeholder="Ej. Olvidó marcar salida, confirmado con supervisor / Falta justificada por permiso médico">
+
+        <button class="punch" style="margin-top:14px; width:100%;" onclick="guardarRegistroManual()">Guardar registro</button>
+        <div class="msg" id="msgManual"></div>
+        <div class="schedule-note" style="margin-top:14px;">
+          Si dejas las horas vacías y solo escribes una observación, queda como una <strong>falta justificada</strong> (0 horas). Si escribes ambas horas, el sistema calcula las horas automáticamente igual que un marcaje normal.
+        </div>
+      </div>
+
+      <!-- Configuración -->
+      <div id="panelConfig" class="hidden">
+        <h2>URL del backend (Apps Script)</h2>
+        <label for="apiUrl">URL de la aplicación web</label>
+        <input id="apiUrl" placeholder="https://script.google.com/macros/s/XXXX/exec">
+        <button class="punch" style="margin-top:10px; width:100%;" onclick="guardarApiUrl()">Guardar URL (solo en este celular)</button>
+        <div class="msg" id="msgApiUrl"></div>
+
+        <h2 style="margin-top:22px;">Geocerca de instalaciones</h2>
+        <label for="cfgLat">Latitud</label>
+        <input id="cfgLat" style="margin-bottom:12px;">
+        <label for="cfgLng">Longitud</label>
+        <input id="cfgLng" style="margin-bottom:12px;">
+        <label for="cfgRadio">Radio permitido (metros)</label>
+        <input id="cfgRadio" type="number" min="1">
+        <button class="punch" style="margin-top:14px; width:100%;" onclick="guardarConfigGeocerca()">Guardar geocerca (aplica a todos)</button>
+        <div class="msg" id="msgConfig"></div>
+        <div class="schedule-note" style="margin-top:14px;">
+          Este cambio se guarda en Google Sheets y aplica de inmediato a todos los celulares.
+        </div>
       </div>
     </div>
   </div>
@@ -319,17 +365,18 @@ let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macro
 document.getElementById('apiUrl').value = API_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT' ? '' : API_URL;
 
 // ---------- GEOCERCA: instalaciones de Dragados Offshore, Puerto Real ----------
-// ⚠️ AJUSTA estas coordenadas a la ubicación EXACTA del predio:
-//    1. Abre Google Maps, busca "Dragados Offshore, Puerto Real".
-//    2. Clic derecho justo sobre el predio (o la entrada principal) > aparece
-//       "Lat, Lng" arriba > clic para copiarlas.
-//    3. Pega esos valores en INSTALACION_LAT / INSTALACION_LNG.
-//    4. Ajusta RADIO_PERMITIDO_METROS según el tamaño real del predio
-//       (recuerda que el GPS de un celular tiene un margen de error normal
-//       de 10 a 50 metros, así que no lo dejes demasiado ajustado).
-const INSTALACION_LAT = 36.526591;           // Instalaciones Dragados Offshore, Puerto Real
-const INSTALACION_LNG = -6.246952;           // Instalaciones Dragados Offshore, Puerto Real
-const RADIO_PERMITIDO_METROS = 800;          // radio permitido alrededor del punto anterior
+// La ubicación y el radio permitido ya NO están fijos en el código: se leen
+// de la hoja "Configuracion" en Google Sheets y se pueden editar desde el
+// modo administrador (pestaña "Configuración"), aplicando a todos los
+// celulares de inmediato.
+let configGeocerca = { lat: 36.526591, lng: -6.246952, radio: 800 }; // valores por defecto mientras carga
+
+async function cargarConfiguracion(){
+  try{
+    const cfg = await apiGet({accion:'configuracion'});
+    if(cfg && !cfg.error) configGeocerca = cfg;
+  }catch(err){ /* se usan los valores por defecto si falla */ }
+}
 
 function distanciaMetros(lat1, lng1, lat2, lng2){
   const R = 6371000; // radio de la Tierra en metros
@@ -354,8 +401,8 @@ function obtenerUbicacion(){
 async function verificarDentroDeInstalaciones(){
   try{
     const ubi = await obtenerUbicacion();
-    const distancia = distanciaMetros(ubi.lat, ubi.lng, INSTALACION_LAT, INSTALACION_LNG);
-    if(distancia <= RADIO_PERMITIDO_METROS){
+    const distancia = distanciaMetros(ubi.lat, ubi.lng, configGeocerca.lat, configGeocerca.lng);
+    if(distancia <= configGeocerca.radio){
       return { ok:true };
     }
     return { ok:false, mensaje: `Estás a ${Math.round(distancia)} m de las instalaciones de Dragados Offshore. Debes estar dentro del predio para marcar.` };
@@ -471,13 +518,13 @@ async function pintarBioBox(){
 
 function guardarApiUrl(){
   const v = document.getElementById('apiUrl').value.trim();
-  if(!v) return;
+  const msg = document.getElementById('msgApiUrl');
+  if(!v){ msg.textContent='Ingrese una URL.'; msg.className='msg error'; return; }
   API_URL = v;
   localStorage.setItem('apiUrl', v);
-  document.getElementById('configCard').classList.add('hidden');
+  msg.textContent = 'URL guardada en este celular.'; msg.className='msg ok';
 }
 
-document.getElementById('toggleConfig').onclick = () => document.getElementById('configCard').classList.toggle('hidden');
 document.getElementById('toggleRegistro').onclick = () => document.getElementById('registroCard').classList.toggle('hidden');
 document.getElementById('toggleAdminLogin').onclick = () => document.getElementById('adminLoginCard').classList.toggle('hidden');
 document.getElementById('toggleRegistro').classList.remove('hidden');
@@ -665,6 +712,16 @@ async function entrarAdmin(){
   document.getElementById('adminPanel').classList.remove('hidden');
   pintarEmpleadosAdmin(res);
   consultarReporte();
+
+  // Precargar formulario de configuración
+  document.getElementById('apiUrl').value = API_URL;
+  document.getElementById('cfgLat').value = configGeocerca.lat;
+  document.getElementById('cfgLng').value = configGeocerca.lng;
+  document.getElementById('cfgRadio').value = configGeocerca.radio;
+
+  if(!document.getElementById('manualFecha').value){
+    document.getElementById('manualFecha').valueAsDate = new Date();
+  }
 }
 
 function cerrarSesionAdmin(){
@@ -677,8 +734,48 @@ function cerrarSesionAdmin(){
 function cambiarTab(tab){
   document.getElementById('tabReporte').classList.toggle('active', tab==='reporte');
   document.getElementById('tabEmpleados').classList.toggle('active', tab==='empleados');
+  document.getElementById('tabManual').classList.toggle('active', tab==='manual');
+  document.getElementById('tabConfig').classList.toggle('active', tab==='config');
   document.getElementById('panelReporte').classList.toggle('hidden', tab!=='reporte');
   document.getElementById('panelEmpleados').classList.toggle('hidden', tab!=='empleados');
+  document.getElementById('panelManual').classList.toggle('hidden', tab!=='manual');
+  document.getElementById('panelConfig').classList.toggle('hidden', tab!=='config');
+}
+
+// ---------- CONFIGURACIÓN (geocerca) DESDE EL ADMIN ----------
+
+async function guardarConfigGeocerca(){
+  const lat = document.getElementById('cfgLat').value;
+  const lng = document.getElementById('cfgLng').value;
+  const radio = document.getElementById('cfgRadio').value;
+  const msg = document.getElementById('msgConfig');
+  msg.textContent='Guardando…'; msg.className='msg';
+  const res = await apiPost({accion:'guardarConfiguracion', clave: claveAdmin, lat, lng, radio});
+  if(res.error){ msg.textContent = res.error; msg.className='msg error'; return; }
+  msg.textContent = res.mensaje; msg.className='msg ok';
+  cargarConfiguracion();
+}
+
+// ---------- REGISTRO MANUAL / JUSTIFICACIÓN ----------
+
+async function guardarRegistroManual(){
+  const idEmpleado = document.getElementById('manualEmpleado').value;
+  const fecha = document.getElementById('manualFecha').value;
+  const horaEntrada = document.getElementById('manualEntrada').value;
+  const horaSalida = document.getElementById('manualSalida').value;
+  const observaciones = document.getElementById('manualObs').value.trim();
+  const msg = document.getElementById('msgManual');
+
+  if(!idEmpleado || !fecha){ msg.textContent='Seleccione trabajador y fecha.'; msg.className='msg error'; return; }
+
+  msg.textContent='Guardando…'; msg.className='msg';
+  const res = await apiPost({accion:'registrarManual', clave: claveAdmin, idEmpleado, fecha, horaEntrada, horaSalida, observaciones});
+  if(res.error){ msg.textContent = res.error; msg.className='msg error'; return; }
+  msg.textContent = res.mensaje; msg.className='msg ok';
+  document.getElementById('manualEntrada').value='';
+  document.getElementById('manualSalida').value='';
+  document.getElementById('manualObs').value='';
+  consultarReporte();
 }
 
 async function consultarReporte(){
@@ -714,7 +811,7 @@ async function consultarReporte(){
 
   const detalleBody = document.getElementById('detalleReporte');
   if(!res.detalle.length){
-    detalleBody.innerHTML = '<tr><td colspan="7" style="color:var(--text-dim);">Sin datos</td></tr>';
+    detalleBody.innerHTML = '<tr><td colspan="8" style="color:var(--text-dim);">Sin datos</td></tr>';
   } else {
     detalleBody.innerHTML = res.detalle.map(r=>`
       <tr>
@@ -725,6 +822,7 @@ async function consultarReporte(){
         <td>${(r.horasNormales||0).toFixed?.(1) ?? r.horasNormales}</td>
         <td style="color:var(--amber)">${(r.horasExtraNormales||0).toFixed?.(1) ?? r.horasExtraNormales}</td>
         <td style="color:var(--red)">${(r.horasExtraordinarias||0).toFixed?.(1) ?? r.horasExtraordinarias}</td>
+        <td style="font-size:10px; color:var(--text-dim); text-align:left;">${r.observaciones||''}</td>
       </tr>`).join('');
   }
 }
@@ -740,6 +838,11 @@ function pintarEmpleadosAdmin(lista){
       <button onclick="mostrarEdicion('${e.id}', ${JSON.stringify(e).replace(/"/g,'&quot;')})">Editar</button>
     </div>
   `).join('');
+
+  const selManual = document.getElementById('manualEmpleado');
+  const seleccionPrevia = selManual.value;
+  selManual.innerHTML = lista.map(e => `<option value="${e.id}">${e.nombre} — ${e.proyecto} (${e.fotocheck})</option>`).join('');
+  if(seleccionPrevia) selManual.value = seleccionPrevia;
 }
 
 function mostrarEdicion(id, empJson){
@@ -782,7 +885,7 @@ async function guardarEdicion(id){
   pintarEmpleadosAdmin(nueva);
 }
 
-if(API_URL.includes('PEGA_AQUI')) document.getElementById('configCard').classList.remove('hidden');
+cargarConfiguracion();
 </script>
 </body>
 </html>
