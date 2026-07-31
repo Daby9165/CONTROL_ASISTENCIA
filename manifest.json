@@ -1,0 +1,17 @@
+{
+  "name": "Control de Asistencia - Dragados Offshore",
+  "short_name": "Asistencia Dragados",
+  "description": "Control de ingreso, salida y horas extras - Dragados Offshore, Puerto Real",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1116",
+  "theme_color": "#07509c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

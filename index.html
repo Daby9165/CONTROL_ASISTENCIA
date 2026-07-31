@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Asistencia</title>
+
+<!-- PWA: permite instalar la app en el celular con ícono propio -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07509c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Asistencia Dragados">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -357,7 +368,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.4';
+const APP_VERSION = 'v2.5';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -886,6 +897,14 @@ async function guardarEdicion(id){
 }
 
 cargarConfiguracion();
+
+// PWA: registra el service worker (necesario para que Android/Chrome
+// permita "Instalar app")
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
