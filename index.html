@@ -218,6 +218,7 @@
         <button class="punch" id="btn-entrada" onclick="marcar('entrada')">Entrada</button>
         <button class="punch" id="btn-salida" onclick="marcar('salida')">Salida</button>
       </div>
+      <div class="msg" id="msg"></div>
       <div class="schedule-note" style="margin-top:12px; border-top:1px dashed #2c303a; padding-top:10px;">
         📍 Solo se puede marcar Entrada/Salida dentro de las instalaciones de Dragados Offshore, Puerto Real.
       </div>
@@ -356,7 +357,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.3';
+const APP_VERSION = 'v2.4';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
