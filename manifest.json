@@ -1,6 +1,6 @@
 {
-  "name": "Control de Asistencia - Dragados Offshore",
-  "short_name": "Asistencia Dragados",
+  "name": "Dragados Clock",
+  "short_name": "Dragados Clock",
   "description": "Control de ingreso, salida y horas extras - Dragados Offshore, Puerto Real",
   "start_url": "./index.html",
   "scope": "./",
