@@ -225,7 +225,9 @@
         <button class="punch" id="btn-entrada" onclick="marcar('entrada')">Entrada</button>
         <button class="punch" id="btn-salida" onclick="marcar('salida')">Salida</button>
       </div>
-      <div class="msg" id="msg"></div>
+      <div class="schedule-note" style="margin-top:12px; border-top:1px dashed #2c303a; padding-top:10px;">
+        📍 Solo se puede marcar Entrada/Salida dentro de las instalaciones de Dragados Offshore, Puerto Real.
+      </div>
     </div>
 
     <div class="card summary">
@@ -299,13 +301,68 @@
   <div class="app-footer">
     <div class="brand-bar"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
     by GUSTAVO_DEVELOPER
+    <div id="footerVersion" style="margin-top:4px; opacity:.7;"></div>
   </div>
 
 </div>
 
 <script>
+// La versión se genera automáticamente a partir de la fecha de la última
+// actualización del código (no hay que recordar subirla a mano: cada vez
+// que se modifica este archivo, se actualiza APP_BUILD_DATE más abajo y el
+// número de versión del pie de página se calcula solo).
+const APP_BUILD_DATE = '2026-07-31'; // fecha de la última actualización del código
+const APP_VERSION = 'v' + APP_BUILD_DATE.replaceAll('-', '.');
+document.getElementById('footerVersion').textContent = APP_VERSION;
+
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
 document.getElementById('apiUrl').value = API_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT' ? '' : API_URL;
+
+// ---------- GEOCERCA: instalaciones de Dragados Offshore, Puerto Real ----------
+// ⚠️ AJUSTA estas coordenadas a la ubicación EXACTA del predio:
+//    1. Abre Google Maps, busca "Dragados Offshore, Puerto Real".
+//    2. Clic derecho justo sobre el predio (o la entrada principal) > aparece
+//       "Lat, Lng" arriba > clic para copiarlas.
+//    3. Pega esos valores en INSTALACION_LAT / INSTALACION_LNG.
+//    4. Ajusta RADIO_PERMITIDO_METROS según el tamaño real del predio
+//       (recuerda que el GPS de un celular tiene un margen de error normal
+//       de 10 a 50 metros, así que no lo dejes demasiado ajustado).
+const INSTALACION_LAT = 36.526591;           // Instalaciones Dragados Offshore, Puerto Real
+const INSTALACION_LNG = -6.246952;           // Instalaciones Dragados Offshore, Puerto Real
+const RADIO_PERMITIDO_METROS = 800;          // radio permitido alrededor del punto anterior
+
+function distanciaMetros(lat1, lng1, lat2, lng2){
+  const R = 6371000; // radio de la Tierra en metros
+  const rad = x => x * Math.PI / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLng = rad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function obtenerUbicacion(){
+  return new Promise((resolve, reject) => {
+    if(!navigator.geolocation){ reject(new Error('Este celular/navegador no soporta geolocalización.')); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, precision: pos.coords.accuracy }),
+      err => reject(new Error(err.code === 1 ? 'Debes permitir el acceso a tu ubicación para poder marcar.' : 'No se pudo obtener tu ubicación.')),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  });
+}
+
+async function verificarDentroDeInstalaciones(){
+  try{
+    const ubi = await obtenerUbicacion();
+    const distancia = distanciaMetros(ubi.lat, ubi.lng, INSTALACION_LAT, INSTALACION_LNG);
+    if(distancia <= RADIO_PERMITIDO_METROS){
+      return { ok:true };
+    }
+    return { ok:false, mensaje: `Estás a ${Math.round(distancia)} m de las instalaciones de Dragados Offshore. Debes estar dentro del predio para marcar.` };
+  }catch(err){
+    return { ok:false, mensaje: err.message };
+  }
+}
 
 let empleadoActual = null; // {id, nombre, proyecto, fotocheck}
 let claveAdmin = null;
@@ -544,6 +601,14 @@ function pintarEstado(estado){
 async function marcar(tipo){
   if(!empleadoActual) return;
   const msg = document.getElementById('msg');
+
+  msg.textContent='Verificando tu ubicación…'; msg.className='msg';
+  const ubicacionOk = await verificarDentroDeInstalaciones();
+  if(!ubicacionOk.ok){
+    msg.textContent = ubicacionOk.mensaje;
+    msg.className='msg error';
+    return;
+  }
 
   msg.textContent='Verificando identidad…'; msg.className='msg';
   const okBio = await verificarBiometria();
