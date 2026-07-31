@@ -300,6 +300,20 @@
 
       <!-- Trabajadores -->
       <div id="panelEmpleados" class="hidden">
+        <button class="punch" style="width:100%; margin-bottom:14px;" onclick="toggleAltaAdmin()">+ Agregar trabajador</button>
+        <div class="edit-form hidden" id="altaAdminForm">
+          <label for="altaNombre">Nombre completo</label>
+          <input id="altaNombre" placeholder="Ej. Juan Pérez García">
+          <label for="altaProyecto">Proyecto</label>
+          <select id="altaProyecto">
+            <option value="Dolwin 4">Dolwin 4</option>
+            <option value="Borwin 4">Borwin 4</option>
+          </select>
+          <label for="altaFotocheck">Número de fotocheck</label>
+          <input id="altaFotocheck" placeholder="Ej. FC-0123">
+          <button class="punch" style="width:100%;" onclick="agregarTrabajadorAdmin()">Guardar trabajador</button>
+          <div class="msg" id="msgAltaAdmin"></div>
+        </div>
         <div id="listaEmpleadosAdmin"></div>
       </div>
 
@@ -341,6 +355,10 @@
         <div class="msg" id="msgApiUrl"></div>
 
         <h2 style="margin-top:22px;">Geocerca de instalaciones</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="cfgActiva" checked>
+          <label style="margin:0;" for="cfgActiva">Geocerca activa (exigir estar dentro del predio para marcar)</label>
+        </div>
         <label for="cfgLat">Latitud</label>
         <input id="cfgLat" style="margin-bottom:12px;">
         <label for="cfgLng">Longitud</label>
@@ -368,7 +386,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.5';
+const APP_VERSION = 'v2.6';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -379,7 +397,7 @@ document.getElementById('apiUrl').value = API_URL === 'PEGA_AQUI_TU_URL_DE_APPS_
 // de la hoja "Configuracion" en Google Sheets y se pueden editar desde el
 // modo administrador (pestaña "Configuración"), aplicando a todos los
 // celulares de inmediato.
-let configGeocerca = { lat: 36.526591, lng: -6.246952, radio: 800 }; // valores por defecto mientras carga
+let configGeocerca = { lat: 36.526591, lng: -6.246952, radio: 800, activa: true }; // valores por defecto mientras carga
 
 async function cargarConfiguracion(){
   try{
@@ -409,6 +427,9 @@ function obtenerUbicacion(){
 }
 
 async function verificarDentroDeInstalaciones(){
+  if(!configGeocerca.activa){
+    return { ok:true };
+  }
   try{
     const ubi = await obtenerUbicacion();
     const distancia = distanciaMetros(ubi.lat, ubi.lng, configGeocerca.lat, configGeocerca.lng);
@@ -729,6 +750,7 @@ async function entrarAdmin(){
   document.getElementById('cfgLat').value = configGeocerca.lat;
   document.getElementById('cfgLng').value = configGeocerca.lng;
   document.getElementById('cfgRadio').value = configGeocerca.radio;
+  document.getElementById('cfgActiva').checked = configGeocerca.activa;
 
   if(!document.getElementById('manualFecha').value){
     document.getElementById('manualFecha').valueAsDate = new Date();
@@ -759,9 +781,10 @@ async function guardarConfigGeocerca(){
   const lat = document.getElementById('cfgLat').value;
   const lng = document.getElementById('cfgLng').value;
   const radio = document.getElementById('cfgRadio').value;
+  const activa = document.getElementById('cfgActiva').checked;
   const msg = document.getElementById('msgConfig');
   msg.textContent='Guardando…'; msg.className='msg';
-  const res = await apiPost({accion:'guardarConfiguracion', clave: claveAdmin, lat, lng, radio});
+  const res = await apiPost({accion:'guardarConfiguracion', clave: claveAdmin, lat, lng, radio, activa});
   if(res.error){ msg.textContent = res.error; msg.className='msg error'; return; }
   msg.textContent = res.mensaje; msg.className='msg ok';
   cargarConfiguracion();
@@ -804,6 +827,7 @@ async function consultarReporte(){
   if(!ids.length){
     resumenDiv.innerHTML = '<div style="color:var(--text-dim); font-size:13px;">Sin registros en este periodo.</div>';
   } else {
+    const t = res.totales;
     resumenDiv.innerHTML = `
       <table>
         <thead><tr><th>Nombre</th><th>Norm.</th><th>Extra L-V</th><th>Extraord.</th><th>Total</th></tr></thead>
@@ -816,6 +840,13 @@ async function consultarReporte(){
               <td style="color:var(--red)">${r.horasExtraordinarias.toFixed(1)}</td>
               <td><strong>${r.total.toFixed(1)}</strong></td>
             </tr>`;}).join('')}
+          <tr style="border-top:2px solid var(--steel);">
+            <td class="name"><strong>Total general</strong></td>
+            <td><strong>${t.horasNormales.toFixed(1)}</strong></td>
+            <td style="color:var(--amber)"><strong>${t.horasExtraNormales.toFixed(1)}</strong></td>
+            <td style="color:var(--red)"><strong>${t.horasExtraordinarias.toFixed(1)}</strong></td>
+            <td><strong>${t.total.toFixed(1)}</strong></td>
+          </tr>
         </tbody>
       </table>`;
   }
@@ -836,6 +867,29 @@ async function consultarReporte(){
         <td style="font-size:10px; color:var(--text-dim); text-align:left;">${r.observaciones||''}</td>
       </tr>`).join('');
   }
+}
+
+function toggleAltaAdmin(){
+  document.getElementById('altaAdminForm').classList.toggle('hidden');
+}
+
+async function agregarTrabajadorAdmin(){
+  const nombreCompleto = document.getElementById('altaNombre').value.trim();
+  const proyecto = document.getElementById('altaProyecto').value;
+  const fotocheck = document.getElementById('altaFotocheck').value.trim();
+  const msg = document.getElementById('msgAltaAdmin');
+
+  if(!nombreCompleto || !fotocheck){ msg.textContent='Complete nombre completo y fotocheck.'; msg.className='msg error'; return; }
+
+  msg.textContent='Guardando…'; msg.className='msg';
+  const res = await apiPost({accion:'registrar', nombreCompleto, proyecto, fotocheck});
+  if(res.error){ msg.textContent = res.error; msg.className='msg error'; return; }
+  msg.textContent = res.mensaje; msg.className='msg ok';
+  document.getElementById('altaNombre').value='';
+  document.getElementById('altaFotocheck').value='';
+
+  const nueva = await apiGet({accion:'empleadosAdmin', clave: claveAdmin});
+  pintarEmpleadosAdmin(nueva);
 }
 
 function pintarEmpleadosAdmin(lista){
