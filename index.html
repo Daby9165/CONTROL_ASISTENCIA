@@ -244,6 +244,18 @@
       </div>
     </div>
 
+    <div class="card summary">
+      <h2>Mi total del mes <span id="mesRangoTxt" style="text-transform:none; letter-spacing:0; color:var(--text-dim);"></span></h2>
+      <div class="hours-grid">
+        <div class="hour-box normal"><div class="num" id="m-normales">0</div><div class="lbl">Normales</div></div>
+        <div class="hour-box extra"><div class="num" id="m-extra">0</div><div class="lbl">Extra L-V</div></div>
+        <div class="hour-box extraord"><div class="num" id="m-extraord">0</div><div class="lbl">Extraord.</div></div>
+      </div>
+      <div style="text-align:center; margin-top:10px; font-size:12px; color:var(--text-dim);">
+        Total acumulado: <strong style="color:var(--text);" id="m-total">0</strong> horas
+      </div>
+    </div>
+
     <div class="card history">
       <h2>Mi historial (últimos 14 días)</h2>
       <table>
@@ -386,7 +398,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.7';
+const APP_VERSION = 'v2.8';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -613,6 +625,7 @@ function entrarComoTrabajador(res){
   pintarBioBox();
   cargarEstado();
   cargarHistorial();
+  cargarTotalesMes();
 }
 
 function cerrarSesion(){
@@ -709,6 +722,7 @@ async function marcar(tipo){
     else { msg.textContent = res.mensaje; msg.className='msg ok'; }
     cargarEstado();
     cargarHistorial();
+    cargarTotalesMes();
   }catch(err){
     msg.textContent='Error de conexión con el servidor.'; msg.className='msg error';
   }
@@ -731,6 +745,17 @@ async function cargarHistorial(){
       <td style="color:var(--amber)">${fmtH(r.horasExtraNormales)}</td>
       <td style="color:var(--red)">${fmtH(r.horasExtraordinarias)}</td>
     </tr>`).join('');
+}
+
+async function cargarTotalesMes(){
+  if(!empleadoActual) return;
+  const res = await apiGet({accion:'totalesMes', idEmpleado: empleadoActual.id});
+  if(res.error) return;
+  document.getElementById('mesRangoTxt').textContent = `(${res.desde} a ${res.hasta})`;
+  document.getElementById('m-normales').textContent = fmtH(res.horasNormales);
+  document.getElementById('m-extra').textContent = fmtH(res.horasExtraNormales);
+  document.getElementById('m-extraord').textContent = fmtH(res.horasExtraordinarias);
+  document.getElementById('m-total').textContent = fmtH(res.total);
 }
 
 // ---------- MODO ADMINISTRADOR ----------
