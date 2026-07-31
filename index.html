@@ -386,7 +386,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.6';
+const APP_VERSION = 'v2.7';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -578,6 +578,11 @@ function apiPost(body){
   return fetch(API_URL, {method:'POST', body: JSON.stringify(body)}).then(r=>r.json());
 }
 
+// Muestra horas "cumplidas": solo números enteros, sin decimales.
+function fmtH(n){
+  return Math.floor(Number(n) || 0);
+}
+
 // ---------- LOGIN TRABAJADOR ----------
 
 async function ingresar(){
@@ -672,9 +677,9 @@ function pintarEstado(estado){
   document.getElementById('btn-entrada').disabled = marcado.includes('entrada');
   document.getElementById('btn-salida').disabled = !marcado.includes('entrada') || marcado.includes('salida');
 
-  document.getElementById('h-normales').textContent = (estado.horasNormales||0).toFixed(1);
-  document.getElementById('h-extra').textContent = (estado.horasExtraNormales||0).toFixed(1);
-  document.getElementById('h-extraord').textContent = (estado.horasExtraordinarias||0).toFixed(1);
+  document.getElementById('h-normales').textContent = fmtH(estado.horasNormales);
+  document.getElementById('h-extra').textContent = fmtH(estado.horasExtraNormales);
+  document.getElementById('h-extraord').textContent = fmtH(estado.horasExtraordinarias);
 }
 
 async function marcar(tipo){
@@ -722,9 +727,9 @@ async function cargarHistorial(){
       <td class="date">${r.fecha}</td>
       <td>${r.entrada||'-'}</td>
       <td>${r.salida||'-'}</td>
-      <td>${(r.horasNormales||0).toFixed?.(1) ?? r.horasNormales}</td>
-      <td style="color:var(--amber)">${(r.horasExtraNormales||0).toFixed?.(1) ?? r.horasExtraNormales}</td>
-      <td style="color:var(--red)">${(r.horasExtraordinarias||0).toFixed?.(1) ?? r.horasExtraordinarias}</td>
+      <td>${fmtH(r.horasNormales)}</td>
+      <td style="color:var(--amber)">${fmtH(r.horasExtraNormales)}</td>
+      <td style="color:var(--red)">${fmtH(r.horasExtraordinarias)}</td>
     </tr>`).join('');
 }
 
@@ -835,17 +840,17 @@ async function consultarReporte(){
           ${ids.map(id=>{const r=res.resumen[id]; return `
             <tr>
               <td class="name">${r.nombre}</td>
-              <td>${r.horasNormales.toFixed(1)}</td>
-              <td style="color:var(--amber)">${r.horasExtraNormales.toFixed(1)}</td>
-              <td style="color:var(--red)">${r.horasExtraordinarias.toFixed(1)}</td>
-              <td><strong>${r.total.toFixed(1)}</strong></td>
+              <td>${fmtH(r.horasNormales)}</td>
+              <td style="color:var(--amber)">${fmtH(r.horasExtraNormales)}</td>
+              <td style="color:var(--red)">${fmtH(r.horasExtraordinarias)}</td>
+              <td><strong>${fmtH(r.total)}</strong></td>
             </tr>`;}).join('')}
           <tr style="border-top:2px solid var(--steel);">
             <td class="name"><strong>Total general</strong></td>
-            <td><strong>${t.horasNormales.toFixed(1)}</strong></td>
-            <td style="color:var(--amber)"><strong>${t.horasExtraNormales.toFixed(1)}</strong></td>
-            <td style="color:var(--red)"><strong>${t.horasExtraordinarias.toFixed(1)}</strong></td>
-            <td><strong>${t.total.toFixed(1)}</strong></td>
+            <td><strong>${fmtH(t.horasNormales)}</strong></td>
+            <td style="color:var(--amber)"><strong>${fmtH(t.horasExtraNormales)}</strong></td>
+            <td style="color:var(--red)"><strong>${fmtH(t.horasExtraordinarias)}</strong></td>
+            <td><strong>${fmtH(t.total)}</strong></td>
           </tr>
         </tbody>
       </table>`;
@@ -861,9 +866,9 @@ async function consultarReporte(){
         <td class="name">${r.nombre}</td>
         <td>${r.entrada||'-'}</td>
         <td>${r.salida||'-'}</td>
-        <td>${(r.horasNormales||0).toFixed?.(1) ?? r.horasNormales}</td>
-        <td style="color:var(--amber)">${(r.horasExtraNormales||0).toFixed?.(1) ?? r.horasExtraNormales}</td>
-        <td style="color:var(--red)">${(r.horasExtraordinarias||0).toFixed?.(1) ?? r.horasExtraordinarias}</td>
+        <td>${fmtH(r.horasNormales)}</td>
+        <td style="color:var(--amber)">${fmtH(r.horasExtraNormales)}</td>
+        <td style="color:var(--red)">${fmtH(r.horasExtraordinarias)}</td>
         <td style="font-size:10px; color:var(--text-dim); text-align:left;">${r.observaciones||''}</td>
       </tr>`).join('');
   }
