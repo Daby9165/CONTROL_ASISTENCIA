@@ -353,12 +353,10 @@
 </div>
 
 <script>
-// La versión se genera automáticamente a partir de la fecha de la última
-// actualización del código (no hay que recordar subirla a mano: cada vez
-// que se modifica este archivo, se actualiza APP_BUILD_DATE más abajo y el
-// número de versión del pie de página se calcula solo).
-const APP_BUILD_DATE = '2026-07-31'; // fecha de la última actualización del código
-const APP_VERSION = 'v' + APP_BUILD_DATE.replaceAll('-', '.');
+// La versión es un número manual (vX.Y) que se sube cada vez que se publica
+// un cambio del código — así se pueden distinguir varias versiones aunque
+// se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
+const APP_VERSION = 'v2.3';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -405,7 +403,8 @@ async function verificarDentroDeInstalaciones(){
     if(distancia <= configGeocerca.radio){
       return { ok:true };
     }
-    return { ok:false, mensaje: `Estás a ${Math.round(distancia)} m de las instalaciones de Dragados Offshore. Debes estar dentro del predio para marcar.` };
+    const precisionTxt = ubi.precision ? ` (precisión GPS: ±${Math.round(ubi.precision)} m)` : '';
+    return { ok:false, mensaje: `Estás a ${Math.round(distancia)} m de las instalaciones de Dragados Offshore${precisionTxt}. Debes estar dentro del predio (radio permitido: ${configGeocerca.radio} m) para marcar.` };
   }catch(err){
     return { ok:false, mensaje: err.message };
   }
