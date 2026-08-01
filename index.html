@@ -195,21 +195,6 @@
     </div>
   </div>
 
-  <div class="config-toggle hidden" id="toggleRegistro">+ Registrar nuevo trabajador</div>
-  <div class="card hidden" id="registroCard">
-    <label for="regNombre">Nombre completo</label>
-    <input id="regNombre" placeholder="Ej. Juan Pérez García" style="margin-bottom:12px;">
-    <label for="regProyecto">Proyecto</label>
-    <select id="regProyecto" style="margin-bottom:12px;">
-      <option value="Dolwin 4">Dolwin 4</option>
-      <option value="Borwin 4">Borwin 4</option>
-    </select>
-    <label for="regFotocheck">Número de fotocheck</label>
-    <input id="regFotocheck" placeholder="Ej. FC-0123">
-    <button class="punch" style="margin-top:14px; width:100%;" onclick="registrarTrabajador()">Registrar trabajador</button>
-    <div class="msg" id="msgRegistro"></div>
-  </div>
-
   <!-- ==================== PANEL TRABAJADOR ==================== -->
   <div class="hidden" id="workerPanel">
     <div class="card">
@@ -398,7 +383,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v2.9';
+const APP_VERSION = 'v3.0';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -569,9 +554,7 @@ function guardarApiUrl(){
   msg.textContent = 'URL guardada en este celular.'; msg.className='msg ok';
 }
 
-document.getElementById('toggleRegistro').onclick = () => document.getElementById('registroCard').classList.toggle('hidden');
 document.getElementById('toggleAdminLogin').onclick = () => document.getElementById('adminLoginCard').classList.toggle('hidden');
-document.getElementById('toggleRegistro').classList.remove('hidden');
 
 function tick(){
   const now = new Date();
@@ -617,8 +600,6 @@ function entrarComoTrabajador(res){
   empleadoActual = res;
   document.getElementById('loginCard').classList.add('hidden');
   document.getElementById('bienvenidaCard').classList.add('hidden');
-  document.getElementById('toggleRegistro').classList.add('hidden');
-  document.getElementById('registroCard').classList.add('hidden');
   document.getElementById('workerPanel').classList.remove('hidden');
   document.getElementById('workerNombre').textContent = res.nombre;
   document.getElementById('workerProyecto').textContent = res.proyecto;
@@ -638,7 +619,6 @@ function cerrarSesion(){
     document.getElementById('bienvenidaCard').classList.remove('hidden');
   } else {
     document.getElementById('loginCard').classList.remove('hidden');
-    document.getElementById('toggleRegistro').classList.remove('hidden');
   }
 }
 
@@ -647,30 +627,10 @@ function cerrarSesion(){
   const emp = dueñoGuardado();
   if(emp){
     document.getElementById('loginCard').classList.add('hidden');
-    document.getElementById('toggleRegistro').classList.add('hidden');
     document.getElementById('bienvenidaNombre').textContent = emp.nombre;
     document.getElementById('bienvenidaCard').classList.remove('hidden');
   }
 })();
-
-async function registrarTrabajador(){
-  const nombreCompleto = document.getElementById('regNombre').value.trim();
-  const proyecto = document.getElementById('regProyecto').value;
-  const fotocheck = document.getElementById('regFotocheck').value.trim();
-  const msg = document.getElementById('msgRegistro');
-  if(!nombreCompleto || !fotocheck){ msg.textContent='Complete nombre completo y fotocheck.'; msg.className='msg error'; return; }
-  msg.textContent='Registrando…'; msg.className='msg';
-  try{
-    const res = await apiPost({accion:'registrar', nombreCompleto, proyecto, fotocheck});
-    if(res.error){ msg.textContent = res.error; msg.className='msg error'; }
-    else {
-      msg.textContent = res.mensaje + ' Ya puede ingresar con su fotocheck.'; msg.className='msg ok';
-      document.getElementById('regNombre').value=''; document.getElementById('regFotocheck').value='';
-    }
-  }catch(err){
-    msg.textContent='Error de conexión con el servidor.'; msg.className='msg error';
-  }
-}
 
 // ---------- ESTADO / MARCAJE / HISTORIAL DEL TRABAJADOR ----------
 
@@ -912,7 +872,7 @@ async function agregarTrabajadorAdmin(){
   if(!nombreCompleto || !fotocheck){ msg.textContent='Complete nombre completo y fotocheck.'; msg.className='msg error'; return; }
 
   msg.textContent='Guardando…'; msg.className='msg';
-  const res = await apiPost({accion:'registrar', nombreCompleto, proyecto, fotocheck});
+  const res = await apiPost({accion:'registrar', clave: claveAdmin, nombreCompleto, proyecto, fotocheck});
   if(res.error){ msg.textContent = res.error; msg.className='msg error'; return; }
   msg.textContent = res.mensaje; msg.className='msg ok';
   document.getElementById('altaNombre').value='';
