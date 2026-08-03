@@ -1,6 +1,6 @@
 {
-  "name": "Dragados Clock",
-  "short_name": "Dragados Clock",
+  "name": "Dossa Clock",
+  "short_name": "Dossa Clock",
   "description": "Control de ingreso, salida y horas extras - Dragados Offshore, Puerto Real",
   "start_url": "./index.html",
   "scope": "./",
