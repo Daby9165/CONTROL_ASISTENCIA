@@ -142,29 +142,31 @@
 
   .fun-tag{
     position:fixed;
-    top:18px;
+    top:50%;
     left:50%;
-    transform:translateX(-50%) scale(0);
-    max-width:92%;
+    transform:translate(-50%,-50%) scale(0);
+    width:88%;
+    max-width:360px;
     z-index:999;
     background:linear-gradient(120deg, var(--navy), var(--red) 55%, var(--amber));
     color:#fff;
     font-family:'Oswald',sans-serif;
     font-weight:600;
-    font-size:14px;
+    font-size:17px;
+    line-height:1.35;
     text-align:center;
-    padding:12px 20px;
-    border-radius:30px;
-    box-shadow:0 10px 30px rgba(0,0,0,.45), 0 0 0 3px rgba(255,255,255,.15) inset;
+    padding:22px 26px;
+    border-radius:24px;
+    box-shadow:0 20px 50px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.15) inset;
     pointer-events:none;
   }
-  .fun-tag.pop{ animation: fun-pop 3.2s ease forwards; }
+  .fun-tag.pop{ animation: fun-pop 6s ease forwards; }
   @keyframes fun-pop{
-    0%{ transform:translateX(-50%) scale(0) rotate(-4deg); opacity:0; }
-    12%{ transform:translateX(-50%) scale(1.12) rotate(2deg); opacity:1; }
-    22%{ transform:translateX(-50%) scale(1) rotate(0deg); opacity:1; }
-    85%{ transform:translateX(-50%) scale(1) rotate(0deg); opacity:1; }
-    100%{ transform:translateX(-50%) scale(.9) rotate(0deg); opacity:0; }
+    0%{ transform:translate(-50%,-50%) scale(0) rotate(-4deg); opacity:0; }
+    8%{ transform:translate(-50%,-50%) scale(1.12) rotate(2deg); opacity:1; }
+    15%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); opacity:1; }
+    90%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); opacity:1; }
+    100%{ transform:translate(-50%,-50%) scale(.9) rotate(0deg); opacity:0; }
   }
 
   .emp-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #2a2e38; gap:8px;}
@@ -239,6 +241,7 @@
       <div class="status-row" id="statusRow"></div>
 
       <div class="bio-box" id="bioBox"></div>
+      <div class="bio-box" id="autoBox"></div>
 
       <div class="punch-grid" style="margin-top:16px;">
         <button class="punch" id="btn-entrada" onclick="marcar('entrada')">Entrada</button>
@@ -433,7 +436,7 @@
 // La versión es un número manual (vX.Y) que se sube cada vez que se publica
 // un cambio del código — así se pueden distinguir varias versiones aunque
 // se publiquen el mismo día. Súbelo cada vez que actualices este archivo.
-const APP_VERSION = 'v3.1';
+const APP_VERSION = 'v3.3';
 document.getElementById('footerVersion').textContent = APP_VERSION;
 
 let API_URL = localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbzI8CpHhefdLjEXZHnSC0OiRlTSbVlGXTwLCKRjWG19A2hQx2ySIgS5u5jaczZYj5Xc/exec';
@@ -478,7 +481,7 @@ function mostrarEtiqueta(texto){
   tag.classList.remove('pop');
   void tag.offsetWidth; // fuerza a reiniciar la animación
   tag.classList.add('pop');
-  funTagTimeout = setTimeout(() => tag.classList.remove('pop'), 3300);
+  funTagTimeout = setTimeout(() => tag.classList.remove('pop'), 6100);
 }
 
 function distanciaMetros(lat1, lng1, lat2, lng2){
@@ -622,6 +625,91 @@ async function pintarBioBox(){
   }
 }
 
+// ---------- MARCAJE AUTOMÁTICO ----------
+// Mientras la app esté ABIERTA en pantalla, revisa la ubicación cada cierto
+// tiempo y marca sola: Entrada si estás dentro del predio hasta las 7:30, y
+// Salida si sales del predio despues del horario oficial. NO funciona con
+// el celular bloqueado o la app cerrada (ninguna app web puede hacer eso).
+let autoCheckInterval = null;
+const AUTO_CHECK_MS = 90000; // revisa la ubicacion cada 90 segundos
+
+function autoMarcajeActivo(){
+  return empleadoActual && localStorage.getItem('autoMarcaje_'+empleadoActual.id) === '1';
+}
+
+function pintarAutoBox(){
+  const box = document.getElementById('autoBox');
+  if(!empleadoActual){ box.innerHTML=''; return; }
+  if(autoMarcajeActivo()){
+    box.className = 'bio-box on';
+    box.innerHTML = '🤖 Marcaje automático activado <button onclick="toggleAutoMarcaje()">Desactivar</button>';
+  } else {
+    box.className = 'bio-box';
+    box.innerHTML = '<span>Marca tu Entrada y Salida solas, sin tocar botones (app abierta)</span><button onclick="toggleAutoMarcaje()">Activar</button>';
+  }
+}
+
+function toggleAutoMarcaje(){
+  if(!empleadoActual) return;
+  if(autoMarcajeActivo()){
+    localStorage.removeItem('autoMarcaje_'+empleadoActual.id);
+    detenerChequeoAutomatico();
+  } else {
+    alert('El marcaje automático solo funciona mientras tengas esta app ABIERTA en pantalla (no con el celular bloqueado ni la app cerrada). Va a marcar tu Entrada sola si estás dentro del predio hasta las 7:30, y tu Salida sola cuando salgas del predio después de tu horario.');
+    localStorage.setItem('autoMarcaje_'+empleadoActual.id, '1');
+    iniciarChequeoAutomatico();
+  }
+  pintarAutoBox();
+}
+
+function iniciarChequeoAutomatico(){
+  detenerChequeoAutomatico();
+  if(!autoMarcajeActivo()) return;
+  chequeoAutomatico(); // primera revision inmediata
+  autoCheckInterval = setInterval(chequeoAutomatico, AUTO_CHECK_MS);
+}
+
+function detenerChequeoAutomatico(){
+  if(autoCheckInterval){ clearInterval(autoCheckInterval); autoCheckInterval = null; }
+}
+
+async function chequeoAutomatico(){
+  if(!empleadoActual || !autoMarcajeActivo()) return;
+
+  const estado = await apiGet({accion:'estadoHoy', idEmpleado: empleadoActual.id});
+  const marcado = estado.marcado || [];
+  const ahora = new Date();
+  const esSabado = ahora.getDay() === 6;
+  const horaFinOficial = esSabado ? 14 : 19;
+  const toleranciaEntrada = new Date(ahora); toleranciaEntrada.setHours(7,30,0,0);
+  const finOficial = new Date(ahora); finOficial.setHours(horaFinOficial,0,0,0);
+
+  let ubi;
+  try{ ubi = await obtenerUbicacion(); }catch(err){ return; } // sin ubicacion, no se puede revisar
+  const distancia = distanciaMetros(ubi.lat, ubi.lng, configGeocerca.lat, configGeocerca.lng);
+  const dentro = !configGeocerca.activa || distancia <= configGeocerca.radio;
+
+  if(!marcado.includes('entrada') && ahora <= toleranciaEntrada && dentro){
+    await marcarAutomatico('entrada');
+    return;
+  }
+  if(marcado.includes('entrada') && !marcado.includes('salida') && ahora > finOficial && !dentro){
+    await marcarAutomatico('salida');
+  }
+}
+
+async function marcarAutomatico(tipo){
+  try{
+    const res = await apiPost({accion:'marcar', idEmpleado: empleadoActual.id, tipo});
+    if(!res.error){
+      mostrarEtiqueta('🤖 ' + res.mensaje + ' (automático)');
+      cargarEstado();
+      cargarHistorial();
+      cargarTotalesMes();
+    }
+  }catch(err){ /* se reintenta en la siguiente revision */ }
+}
+
 
 function guardarApiUrl(){
   const v = document.getElementById('apiUrl').value.trim();
@@ -682,6 +770,8 @@ function entrarComoTrabajador(res){
   document.getElementById('workerNombre').textContent = res.nombre;
   document.getElementById('workerProyecto').textContent = res.proyecto;
   pintarBioBox();
+  pintarAutoBox();
+  iniciarChequeoAutomatico();
   cargarEstado();
   cargarHistorial();
   cargarTotalesMes();
@@ -689,6 +779,7 @@ function entrarComoTrabajador(res){
 }
 
 function cerrarSesion(){
+  detenerChequeoAutomatico();
   empleadoActual = null;
   document.getElementById('fotocheckInput').value='';
   document.getElementById('workerPanel').classList.add('hidden');
@@ -700,6 +791,16 @@ function cerrarSesion(){
     document.getElementById('loginCard').classList.remove('hidden');
   }
 }
+
+// Vuelve a revisar apenas la app pasa a primer plano (celular desbloqueado,
+// pestaña activa de nuevo), ya que los navegadores pausan los timers en
+// segundo plano.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && autoMarcajeActivo()){
+    chequeoAutomatico();
+  }
+});
+
 
 // Al abrir la app: si este celular ya tiene dueño guardado, saltar el login manual
 (function comprobarCelularGuardado(){
