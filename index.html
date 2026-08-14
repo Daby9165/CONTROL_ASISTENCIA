@@ -1152,6 +1152,23 @@ if('serviceWorker' in navigator){
 }
   <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLkx-koCJuy1II77wBnKr-MJcdXp1SBaqb10NSUV1iDVwEiAq21ZOWiBdbga22bJcK/exec";
-</script>
+
+    function actualizarReloj() {
+      const ahora = new Date();
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      const segundos = String(ahora.getSeconds()).padStart(2, '0');
+      
+      // Busca el elemento del reloj en la pantalla
+      const relojEl = document.querySelector('.reloj') || document.getElementById('reloj');
+      if (relojEl) {
+        relojEl.textContent = `${horas}:${minutos}:${segundos}`;
+      }
+    }
+
+    // Actualiza cada segundo
+    setInterval(actualizarReloj, 1000);
+    actualizarReloj();
+  </script>
 </body>
 </html>
